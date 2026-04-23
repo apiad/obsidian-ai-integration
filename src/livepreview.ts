@@ -1,0 +1,168 @@
+import { App, MarkdownView, Plugin, TFile } from "obsidian";
+import type { Bubble, BubbleState } from "./types";
+import { parseBubbles } from "./parse";
+import { deriveStates } from "./state";
+import { enqueue, cancel, retry, listQueueIds } from "./enqueue";
+
+const SELECTOR =
+  '.markdown-source-view .callout[data-callout="for-claude"], ' +
+  '.markdown-source-view .callout[data-callout="from-claude"]';
+
+export class LivePreviewDecorator {
+  private observer?: MutationObserver;
+
+  constructor(private app: App) {}
+
+  start(plugin: Plugin): void {
+    this.scan(document.body);
+
+    this.observer = new MutationObserver((mutations) => {
+      const seen = new Set<HTMLElement>();
+      for (const m of mutations) {
+        m.addedNodes.forEach((node) => {
+          if (node instanceof HTMLElement) this.collect(node, seen);
+        });
+        if (m.type === "attributes" && m.target instanceof HTMLElement) {
+          this.collect(m.target, seen);
+        }
+      }
+      seen.forEach((el) => this.decorateOne(el));
+    });
+
+    this.observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-callout"],
+    });
+
+    plugin.register(() => this.observer?.disconnect());
+  }
+
+  private collect(root: HTMLElement, seen: Set<HTMLElement>): void {
+    if (typeof root.matches === "function" && root.matches(SELECTOR)) {
+      seen.add(root);
+    }
+    root
+      .querySelectorAll<HTMLElement>(SELECTOR)
+      .forEach((el) => seen.add(el));
+  }
+
+  private scan(root: ParentNode): void {
+    root
+      .querySelectorAll<HTMLElement>(SELECTOR)
+      .forEach((el) => this.decorateOne(el));
+  }
+
+  private decorateOne(el: HTMLElement): void {
+    if (el.dataset.aiState) return;
+
+    const view = this.findContainingView(el);
+    if (!view || !view.file) return;
+
+    const file = view.file;
+    const cmView: any = (view.editor as any).cm;
+    if (!cmView || typeof cmView.posAtDOM !== "function") return;
+
+    let pos: number;
+    try {
+      pos = cmView.posAtDOM(el);
+    } catch {
+      return;
+    }
+    const calloutLine = view.editor.offsetToPos(pos).line + 1;
+
+    this.app.vault.cachedRead(file).then((raw) => {
+      if (!el.isConnected) return;
+
+      const bubbles = parseBubbles(raw);
+      let bubble = bubbles.find((b) => b.lineStart === calloutLine);
+      if (!bubble) {
+        bubble = bubbles
+          .slice()
+          .sort(
+            (a, b) =>
+              Math.abs(a.lineStart - calloutLine) -
+              Math.abs(b.lineStart - calloutLine),
+          )[0];
+      }
+      if (!bubble) return;
+
+      const queueCtx = listQueueIds(this.app);
+      const state = deriveStates(bubbles, queueCtx).get(bubble)!;
+
+      this.applyDecoration(el, bubble, state, file);
+    });
+  }
+
+  private applyDecoration(
+    el: HTMLElement,
+    bubble: Bubble,
+    state: BubbleState,
+    file: TFile,
+  ): void {
+    el.classList.add("ai-integration-bubble");
+    el.classList.add(`ai-integration-${bubble.kind}`);
+    el.setAttribute("data-ai-state", state);
+
+    el.querySelectorAll(".ai-integration-chrome").forEach((n) => n.remove());
+
+    if (bubble.kind !== "for-claude") return;
+
+    const chrome = document.createElement("div");
+    chrome.className = "ai-integration-chrome";
+
+    if (state === "fresh") {
+      const btn = document.createElement("button");
+      btn.className = "ai-integration-ask";
+      btn.textContent = "ASK CLAUDE";
+      btn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await enqueue(this.app, file, bubble);
+      });
+      chrome.appendChild(btn);
+    } else if (state === "queued") {
+      const chip = document.createElement("span");
+      chip.className = "ai-integration-chip-queued";
+      chip.textContent = "Queued…";
+      chrome.appendChild(chip);
+      const cancelBtn = document.createElement("button");
+      cancelBtn.className = "ai-integration-cancel";
+      cancelBtn.textContent = "cancel";
+      cancelBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await cancel(this.app, file, bubble);
+      });
+      chrome.appendChild(cancelBtn);
+    } else if (state === "lost") {
+      const chip = document.createElement("span");
+      chip.className = "ai-integration-chip-lost";
+      chip.textContent = "Lost";
+      chrome.appendChild(chip);
+      const retryBtn = document.createElement("button");
+      retryBtn.className = "ai-integration-retry";
+      retryBtn.textContent = "retry";
+      retryBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await retry(this.app, file, bubble);
+      });
+      chrome.appendChild(retryBtn);
+    } else {
+      return;
+    }
+
+    el.appendChild(chrome);
+  }
+
+  private findContainingView(el: HTMLElement): MarkdownView | null {
+    const leaves = this.app.workspace.getLeavesOfType("markdown");
+    for (const leaf of leaves) {
+      const view = leaf.view as MarkdownView;
+      if (view?.contentEl?.contains(el)) return view;
+    }
+    return null;
+  }
+}
