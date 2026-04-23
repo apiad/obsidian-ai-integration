@@ -54,6 +54,16 @@ export class LivePreviewDecorator {
       .forEach((el) => this.decorateOne(el));
   }
 
+  rescan(): void {
+    document
+      .querySelectorAll<HTMLElement>(SELECTOR)
+      .forEach((el) => {
+        delete el.dataset.aiState;
+        el.querySelectorAll(".ai-integration-chrome").forEach((n) => n.remove());
+        this.decorateOne(el);
+      });
+  }
+
   private decorateOne(el: HTMLElement): void {
     if (el.dataset.aiState) return;
 
