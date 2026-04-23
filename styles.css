@@ -81,3 +81,34 @@
   border: 1px solid rgba(255, 255, 255, 0.3);
   cursor: pointer;
 }
+
+/* From-Claude chrome sits on a neutral background; use muted borders. */
+.callout[data-callout="from-claude"] .ai-integration-chrome {
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.ai-integration-reply {
+  padding: 0.25em 0.7em;
+  font-size: 0.8em;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--background-modifier-border);
+  cursor: pointer;
+}
+
+.ai-integration-reply:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+/* Visual cue that a for-claude bubble is threaded below a previous reply. */
+.callout[data-callout="for-claude"][data-ai-in-reply-to]::before {
+  content: "↩ reply";
+  display: inline-block;
+  font-size: 0.7em;
+  opacity: 0.7;
+  margin-bottom: 0.3em;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}

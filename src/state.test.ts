@@ -9,6 +9,8 @@ function bubble(partial: Partial<Bubble> & { kind: Bubble["kind"] }): Bubble {
     lineStart: partial.lineStart ?? 1,
     lineEnd: partial.lineEnd ?? 1,
     idMarkerLine: partial.idMarkerLine ?? null,
+    inReplyTo: partial.inReplyTo ?? null,
+    inReplyToMarkerLine: partial.inReplyToMarkerLine ?? null,
     body: partial.body ?? "",
   };
 }

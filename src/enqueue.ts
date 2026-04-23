@@ -147,6 +147,40 @@ async function removeIdMarker(
   await app.vault.modify(file, lines.join("\n"));
 }
 
+export async function reply(
+  app: App,
+  sourceFile: TFile,
+  parentBubble: Bubble,
+): Promise<void> {
+  if (parentBubble.kind !== "from-claude") return;
+  if (!parentBubble.id) {
+    new Notice("Cannot reply: parent bubble has no id.");
+    return;
+  }
+
+  const raw = await app.vault.read(sourceFile);
+  const lines = raw.split("\n");
+
+  // Insert right after the response's id marker if present, else after the
+  // last `>` line of the from-claude callout.
+  const insertAt =
+    parentBubble.idMarkerLine != null
+      ? parentBubble.idMarkerLine
+      : parentBubble.lineEnd;
+
+  const snippet = [
+    "",
+    `<!-- claude-in-reply-to: ${parentBubble.id} -->`,
+    "> [!for-claude]",
+    "> ",
+    "",
+  ];
+
+  lines.splice(insertAt, 0, ...snippet);
+  await app.vault.modify(sourceFile, lines.join("\n"));
+  new Notice("Reply bubble inserted.");
+}
+
 export function listQueueIds(app: App): { pendingIds: Set<string>; processedIds: Set<string> } {
   const pending = new Set<string>();
   const processed = new Set<string>();

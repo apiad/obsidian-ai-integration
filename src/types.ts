@@ -11,6 +11,17 @@ export interface Bubble {
   lineEnd: number;
   /** 1-based line number of the `<!-- claude-id: ... -->` marker, if present. */
   idMarkerLine: number | null;
+  /**
+   * ID of the `from-claude` bubble this `for-claude` bubble is replying to,
+   * if a `<!-- claude-in-reply-to: <id> -->` marker sits on the line
+   * immediately above the callout opener. Always null for `from-claude`.
+   */
+  inReplyTo: string | null;
+  /**
+   * 1-based line number of the `<!-- claude-in-reply-to: ... -->` marker,
+   * if present.
+   */
+  inReplyToMarkerLine: number | null;
   /** The body text of the callout, stripped of leading `> ` prefixes, joined by \n. */
   body: string;
 }

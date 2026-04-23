@@ -2,7 +2,7 @@ import { App, MarkdownPostProcessorContext, TFile } from "obsidian";
 import type { Bubble, BubbleState } from "./types";
 import { parseBubbles } from "./parse";
 import { deriveStates } from "./state";
-import { enqueue, cancel, retry, listQueueIds } from "./enqueue";
+import { enqueue, cancel, retry, reply, listQueueIds } from "./enqueue";
 
 export function makeDecorator(app: App) {
   return async (el: HTMLElement, ctx: MarkdownPostProcessorContext) => {
@@ -37,6 +37,7 @@ export function makeDecorator(app: App) {
         onAsk: () => enqueue(app, file, b),
         onCancel: () => cancel(app, file, b),
         onRetry: () => retry(app, file, b),
+        onReply: () => reply(app, file, b),
       });
     });
   };
@@ -46,6 +47,7 @@ interface Handlers {
   onAsk: () => Promise<void>;
   onCancel: () => Promise<void>;
   onRetry: () => Promise<void>;
+  onReply: () => Promise<void>;
 }
 
 function decorateCallout(
@@ -57,13 +59,25 @@ function decorateCallout(
   el.classList.add("ai-integration-bubble");
   el.classList.add(`ai-integration-${bubble.kind}`);
   el.setAttribute("data-ai-state", state);
+  if (bubble.inReplyTo) {
+    el.setAttribute("data-ai-in-reply-to", bubble.inReplyTo);
+  }
 
   el.querySelectorAll(".ai-integration-chrome").forEach((n) => n.remove());
 
-  if (bubble.kind !== "for-claude") return;
-
   const chrome = document.createElement("div");
   chrome.className = "ai-integration-chrome";
+
+  if (bubble.kind === "from-claude") {
+    if (!bubble.id) return;
+    const replyBtn = document.createElement("button");
+    replyBtn.className = "ai-integration-reply";
+    replyBtn.textContent = "↩ Reply";
+    replyBtn.addEventListener("click", handlers.onReply);
+    chrome.appendChild(replyBtn);
+    el.appendChild(chrome);
+    return;
+  }
 
   switch (state) {
     case "fresh": {

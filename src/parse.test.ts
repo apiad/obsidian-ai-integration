@@ -111,6 +111,48 @@ describe("parseBubbles", () => {
     expect(bubbles[0].kind).toBe("for-claude");
   });
 
+  it("attaches an in-reply-to marker on the line above a for-claude opener", () => {
+    const src = [
+      "> [!from-claude]",
+      "> earlier answer",
+      "<!-- claude-id-response: parent-1 -->",
+      "",
+      "<!-- claude-in-reply-to: parent-1 -->",
+      "> [!for-claude]",
+      "> follow-up question",
+      "<!-- claude-id: child-1 -->",
+    ].join("\n");
+    const bubbles = parseBubbles(src);
+    expect(bubbles).toHaveLength(2);
+    const child = bubbles[1];
+    expect(child.kind).toBe("for-claude");
+    expect(child.inReplyTo).toBe("parent-1");
+    expect(child.inReplyToMarkerLine).toBe(5);
+    expect(child.id).toBe("child-1");
+  });
+
+  it("does not attach an in-reply-to marker to from-claude bubbles", () => {
+    const src = [
+      "<!-- claude-in-reply-to: nope -->",
+      "> [!from-claude]",
+      "> hi",
+    ].join("\n");
+    const bubbles = parseBubbles(src);
+    expect(bubbles).toHaveLength(1);
+    expect(bubbles[0].kind).toBe("from-claude");
+    expect(bubbles[0].inReplyTo).toBeNull();
+  });
+
+  it("leaves inReplyTo null when no marker precedes a for-claude opener", () => {
+    const src = [
+      "> [!for-claude]",
+      "> standalone",
+    ].join("\n");
+    const bubbles = parseBubbles(src);
+    expect(bubbles[0].inReplyTo).toBeNull();
+    expect(bubbles[0].inReplyToMarkerLine).toBeNull();
+  });
+
   it("ignores lines that look like callouts inside a code block", () => {
     const src = [
       "```",

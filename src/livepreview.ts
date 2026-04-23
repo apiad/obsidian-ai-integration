@@ -2,7 +2,7 @@ import { App, MarkdownView, Plugin, TFile } from "obsidian";
 import type { Bubble, BubbleState } from "./types";
 import { parseBubbles } from "./parse";
 import { deriveStates } from "./state";
-import { enqueue, cancel, retry, listQueueIds } from "./enqueue";
+import { enqueue, cancel, retry, reply, listQueueIds } from "./enqueue";
 
 const SELECTOR =
   '.markdown-source-view .callout[data-callout="for-claude"], ' +
@@ -114,13 +114,29 @@ export class LivePreviewDecorator {
     el.classList.add("ai-integration-bubble");
     el.classList.add(`ai-integration-${bubble.kind}`);
     el.setAttribute("data-ai-state", state);
+    if (bubble.inReplyTo) {
+      el.setAttribute("data-ai-in-reply-to", bubble.inReplyTo);
+    }
 
     el.querySelectorAll(".ai-integration-chrome").forEach((n) => n.remove());
 
-    if (bubble.kind !== "for-claude") return;
-
     const chrome = document.createElement("div");
     chrome.className = "ai-integration-chrome";
+
+    if (bubble.kind === "from-claude") {
+      if (!bubble.id) return;
+      const replyBtn = document.createElement("button");
+      replyBtn.className = "ai-integration-reply";
+      replyBtn.textContent = "↩ Reply";
+      replyBtn.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await reply(this.app, file, bubble);
+      });
+      chrome.appendChild(replyBtn);
+      el.appendChild(chrome);
+      return;
+    }
 
     if (state === "fresh") {
       const btn = document.createElement("button");
