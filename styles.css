@@ -1,0 +1,83 @@
+/* obsidian-ai-integration v2 */
+
+.callout[data-callout="for-claude"] {
+  max-width: 80%;
+  margin: 0.75em 0 0.75em auto;
+  padding: 0.6em 0.9em;
+  border-radius: 12px 12px 2px 12px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+}
+
+.callout[data-callout="for-claude"] .callout-title {
+  font-size: 0.8em;
+  opacity: 0.8;
+}
+
+.callout[data-callout="from-claude"] {
+  max-width: 80%;
+  margin: 0.75em 0;
+  padding: 0.6em 0.9em;
+  border-radius: 12px 12px 12px 2px;
+  background: var(--background-modifier-hover);
+  border: none;
+}
+
+.callout[data-callout="from-claude"] .callout-title {
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+
+.ai-integration-chrome {
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 0.5em;
+  padding-top: 0.4em;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.ai-integration-ask {
+  padding: 0.4em 1em;
+  font-weight: 600;
+  font-size: 0.9em;
+  min-height: 2.2em;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--text-on-accent);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+}
+
+.ai-integration-ask:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.ai-integration-chip-queued {
+  padding: 0.15em 0.6em;
+  border-radius: 999px;
+  font-size: 0.8em;
+  background: var(--color-purple);
+  color: white;
+}
+
+.ai-integration-chip-lost {
+  padding: 0.15em 0.6em;
+  border-radius: 999px;
+  font-size: 0.8em;
+  background: var(--color-red);
+  color: white;
+}
+
+.ai-integration-cancel,
+.ai-integration-retry {
+  padding: 0.25em 0.7em;
+  font-size: 0.8em;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+}

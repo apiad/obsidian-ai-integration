@@ -1,0 +1,10 @@
+{
+  "id": "obsidian-ai-integration",
+  "name": "AI Integration",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Per-bubble Claude invocation. Write a [!for-claude] callout in any doc; tap ASK CLAUDE; a [!from-claude] reply is appended.",
+  "author": "Alejandro Piad",
+  "authorUrl": "https://github.com/apiad",
+  "isDesktopOnly": false
+}
