@@ -31,6 +31,33 @@ script wraps it into a `[!from-claude]` callout and handles insertion.
 Claude must NOT edit the source file at the bubble location — the writer
 owns that byte range.
 
+## Deploy — the silent-drift trap
+
+**The problem we hit on 2026-04-24:** `npm run build` emitted a new `main.js`
+in the repo, but nobody copied it into
+`vault/.obsidian/plugins/obsidian-ai-integration/`. Obsidian on the laptop
+loads from the vault path; the repo build is invisible to Obsidian unless
+the artifacts are copied. Every "I shipped feature X" message became a lie —
+the feature existed in the repo's `main.js` but the installed binary was
+stale (9 hours behind). Symptom on the user side: "the plugin is broken /
+half-assed." Root cause: missing deploy step.
+
+**Fixed by:** `npm run build` now chains into `scripts/deploy-to-vault.mjs`,
+which copies `main.js`, `manifest.json`, `styles.css` into the installed
+plugin dir. Obsidian Sync replicates from there.
+
+- Target dir resolution: `$OBSIDIAN_PLUGIN_DIR` if set, else
+  `../../vault/.obsidian/plugins/obsidian-ai-integration` (relative to the
+  repo root, assuming the workspace layout). Missing parent dir → silent
+  no-op, so the step is safe on unrelated checkouts.
+- Standalone commands: `npm run deploy` (copy without rebuild),
+  `npm run verify:install` (exit nonzero if installed drifts from built).
+
+**Guardrail:** `src/install.test.ts` runs on every `npm test` and fails
+loud if the installed artifacts don't hash-match the repo's built ones.
+Skips cleanly when either side is absent (fresh clone, non-workspace
+checkout).
+
 ## Test map
 
 ### Plugin side (TypeScript, vitest)
@@ -46,6 +73,14 @@ Run: `npm test`
   fake in-memory Vault (`src/testing/fake-vault.ts`). Includes a small
   end-to-end test simulating the VPS writing a response into the source
   doc and re-parsing.
+- `src/install.test.ts` — drift guard. Hashes the installed artifacts
+  against the built ones; fails if they diverge.
+- `src/pipeline.e2e.test.ts` — cross-language e2e. Spawns the real
+  Python writer (`ai_queue_write_response.py`) against a tmp vault,
+  lets it mutate a source file, then feeds the result through the real
+  TS `parseBubbles` + `deriveStates`. Proves the markdown contract
+  between halves hasn't drifted. Skips if Python / pyyaml / the writer
+  script aren't available.
 
 ### VPS side (Python, pytest via uv)
 
