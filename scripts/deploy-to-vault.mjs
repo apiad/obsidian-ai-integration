@@ -14,6 +14,7 @@
  * the workspace layout.
  */
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import {
   copyFileSync,
   existsSync,
@@ -70,7 +71,34 @@ export function deploy({ silent = false } = {}) {
       console.log(`  ${c.name}  ${c.hash.slice(0, 12)}  ${c.bytes}b`);
     }
   }
+
+  // Kick Obsidian Sync so the new binaries actually leave the host.
+  // `ob sync --continuous` does not watch .obsidian/plugins for local-file
+  // changes between scans — every build we did would sit unuploaded until
+  // the daemon was restarted. If a systemd user unit named obsidian-sync
+  // is active, restart it so sync picks up the deploy on its startup scan.
+  kickSyncIfPresent(silent);
+
   return { status: "ok", target, copied };
+}
+
+function kickSyncIfPresent(silent) {
+  const check = spawnSync("systemctl", ["--user", "is-active", "obsidian-sync.service"], {
+    encoding: "utf8",
+  });
+  if (check.error || check.status !== 0 || check.stdout.trim() !== "active") {
+    return;
+  }
+  const restart = spawnSync("systemctl", ["--user", "restart", "obsidian-sync.service"], {
+    encoding: "utf8",
+  });
+  if (!silent) {
+    if (restart.status === 0) {
+      console.log("[deploy-plugin] kicked obsidian-sync.service (forces upload scan)");
+    } else {
+      console.warn(`[deploy-plugin] systemctl restart failed: ${restart.stderr || "unknown"}`);
+    }
+  }
 }
 
 export function verifyInstalled() {

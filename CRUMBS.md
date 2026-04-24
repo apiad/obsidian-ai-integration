@@ -58,6 +58,30 @@ loud if the installed artifacts don't hash-match the repo's built ones.
 Skips cleanly when either side is absent (fresh clone, non-workspace
 checkout).
 
+### The second silent-drift trap: `ob sync --continuous` doesn't watch `.obsidian/`
+
+**Hit 2026-04-24, v0.3.1.** After the deploy fix above, builds landed in
+the installed plugin dir but STILL didn't reach the laptop. Obsidian Sync
+was running (`obsidian-sync.service`), heartbeating every 30s — but it
+never noticed the new `main.js`. Restart of the sync service detected the
+file change on its startup scan and uploaded immediately.
+
+So: `ob sync --continuous` does not inotify-watch `.obsidian/plugins/`
+between scans. Between restarts, local plugin changes are invisible to
+the daemon. Normal vault files (`.md`) upload fine; `.obsidian/*` does
+not.
+
+**Fix:** `scripts/deploy-to-vault.mjs` now kicks
+`systemctl --user restart obsidian-sync.service` at the end of every
+deploy — iff the unit is active. Non-vps hosts (no such unit) are a
+no-op. Restart takes ~1s and triggers the startup scan that sees the
+new bytes.
+
+If you're debugging "plugin fresh on VPS but stale on laptop," check the
+sync log first: `tail /home/apiad/.config/obsidian-headless/sync/*/sync.log`.
+If the last `obsidian-ai-integration/main.js` event is hours old, the
+continuous daemon is asleep on that path — restart the unit.
+
 ## Test map
 
 ### Plugin side (TypeScript, vitest)
