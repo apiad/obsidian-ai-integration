@@ -14,6 +14,12 @@ export class LivePreviewDecorator {
   constructor(private app: App) {}
 
   start(plugin: Plugin): void {
+    // When Obsidian reloads the plugin (disable+enable, or Hot Reload),
+    // callouts in the live DOM may still carry data-ai-state / chrome
+    // from the previous instance. Clear that stale state before scanning,
+    // otherwise decorateOne's short-circuit skips every bubble and no
+    // buttons render until the user triggers a view rerender.
+    this.stripDecorations(document.body);
     this.scan(document.body);
 
     this.observer = new MutationObserver((mutations) => {
@@ -36,7 +42,23 @@ export class LivePreviewDecorator {
       attributeFilter: ["data-callout"],
     });
 
-    plugin.register(() => this.observer?.disconnect());
+    plugin.register(() => {
+      this.observer?.disconnect();
+      this.stripDecorations(document.body);
+    });
+  }
+
+  private stripDecorations(root: ParentNode): void {
+    root.querySelectorAll<HTMLElement>(SELECTOR).forEach((el) => {
+      delete el.dataset.aiState;
+      delete el.dataset.aiInReplyTo;
+      el.classList.remove(
+        "ai-integration-bubble",
+        "ai-integration-for-claude",
+        "ai-integration-from-claude",
+      );
+      el.querySelectorAll(".ai-integration-chrome").forEach((n) => n.remove());
+    });
   }
 
   private collect(root: HTMLElement, seen: Set<HTMLElement>): void {
@@ -55,13 +77,10 @@ export class LivePreviewDecorator {
   }
 
   rescan(): void {
+    this.stripDecorations(document.body);
     document
       .querySelectorAll<HTMLElement>(SELECTOR)
-      .forEach((el) => {
-        delete el.dataset.aiState;
-        el.querySelectorAll(".ai-integration-chrome").forEach((n) => n.remove());
-        this.decorateOne(el);
-      });
+      .forEach((el) => this.decorateOne(el));
   }
 
   private decorateOne(el: HTMLElement): void {
