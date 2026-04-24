@@ -82,6 +82,32 @@ sync log first: `tail /home/apiad/.config/obsidian-headless/sync/*/sync.log`.
 If the last `obsidian-ai-integration/main.js` event is hours old, the
 continuous daemon is asleep on that path — restart the unit.
 
+## Threading marker lives INSIDE the callout
+
+v0.4.0+ writes `<!-- claude-in-reply-to: <parent-id> -->` as the first
+body line of the `[!for-claude]` callout (prefixed with `> `), not on
+a bare line above the opener. Obsidian hides HTML comments, so this
+keeps the threading link invisible in the UI while keeping the parent
+id discoverable by `claude -p` reading the raw markdown.
+
+`parse.ts` accepts both placements: inside-first body line (primary),
+or bare line immediately above the opener (legacy). The inside path
+also strips the marker from `bubble.body` so it doesn't leak into the
+prompt sent to Claude. Bubbles authored before v0.4.0 continue to
+parse correctly.
+
+## Styles — full-width subtle chrome, not chat bubbles
+
+v0.4.0 dropped the max-width + asymmetric border-radius "chat bubble"
+look. Callouts now render as full-width blocks with a 3px left rail
+(`--interactive-accent` for `for-claude`, `--text-accent` for
+`from-claude`) on a `--background-secondary` tint. The chrome row
+(buttons, chips) is muted by default and uses `--text-muted` /
+`--background-modifier-border` so it reads as decoration, not UI
+chrome competing with the content. Mobile-friendly, unlike the
+previous design where 80%-width right-floated bubbles ate horizontal
+space on narrow viewports.
+
 ## Test map
 
 ### Plugin side (TypeScript, vitest)

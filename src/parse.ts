@@ -36,8 +36,11 @@ export function parseBubbles(src: string): Bubble[] {
     const bodyLines: string[] = [];
     let lineEnd = lineStart;
 
-    // Look back one line for a `<!-- claude-in-reply-to: ... -->` marker
-    // directly above this `[!for-claude]` opener. Only applies to for-claude.
+    // `<!-- claude-in-reply-to: ... -->` threading marker. Primary form is
+    // INSIDE the callout body (prefixed with `> ` on the first body line) so
+    // Obsidian hides it as an HTML comment. For back-compat we also detect
+    // the legacy placement: a bare marker on the line immediately above the
+    // opener. Only applies to for-claude.
     let inReplyTo: string | null = null;
     let inReplyToMarkerLine: number | null = null;
     if (kind === "for-claude" && i > 0) {
@@ -50,7 +53,22 @@ export function parseBubbles(src: string): Bubble[] {
 
     i++;
     while (i < lines.length && lines[i].startsWith(">")) {
-      bodyLines.push(stripBlockquote(lines[i]));
+      const stripped = stripBlockquote(lines[i]);
+      if (
+        kind === "for-claude" &&
+        inReplyTo == null &&
+        bodyLines.length === 0
+      ) {
+        const inside = stripped.match(IN_REPLY_TO_MARKER);
+        if (inside) {
+          inReplyTo = inside[1];
+          inReplyToMarkerLine = i + 1;
+          lineEnd = i + 1;
+          i++;
+          continue;
+        }
+      }
+      bodyLines.push(stripped);
       lineEnd = i + 1;
       i++;
     }

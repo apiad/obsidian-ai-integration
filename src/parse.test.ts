@@ -111,14 +111,14 @@ describe("parseBubbles", () => {
     expect(bubbles[0].kind).toBe("for-claude");
   });
 
-  it("attaches an in-reply-to marker on the line above a for-claude opener", () => {
+  it("attaches an in-reply-to marker placed inside the callout body", () => {
     const src = [
       "> [!from-claude]",
       "> earlier answer",
       "<!-- claude-id-response: parent-1 -->",
       "",
-      "<!-- claude-in-reply-to: parent-1 -->",
       "> [!for-claude]",
+      "> <!-- claude-in-reply-to: parent-1 -->",
       "> follow-up question",
       "<!-- claude-id: child-1 -->",
     ].join("\n");
@@ -127,8 +127,24 @@ describe("parseBubbles", () => {
     const child = bubbles[1];
     expect(child.kind).toBe("for-claude");
     expect(child.inReplyTo).toBe("parent-1");
-    expect(child.inReplyToMarkerLine).toBe(5);
+    expect(child.inReplyToMarkerLine).toBe(6);
     expect(child.id).toBe("child-1");
+    // Marker line is stripped from the body that gets sent to Claude.
+    expect(child.body).toBe("follow-up question");
+  });
+
+  it("still parses the legacy above-opener in-reply-to marker", () => {
+    const src = [
+      "<!-- claude-in-reply-to: parent-1 -->",
+      "> [!for-claude]",
+      "> follow-up question",
+      "<!-- claude-id: child-1 -->",
+    ].join("\n");
+    const bubbles = parseBubbles(src);
+    expect(bubbles).toHaveLength(1);
+    expect(bubbles[0].inReplyTo).toBe("parent-1");
+    expect(bubbles[0].inReplyToMarkerLine).toBe(1);
+    expect(bubbles[0].body).toBe("follow-up question");
   });
 
   it("does not attach an in-reply-to marker to from-claude bubbles", () => {

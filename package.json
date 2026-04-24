@@ -1,6 +1,6 @@
 {
   "name": "obsidian-ai-integration",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Obsidian plugin for per-bubble Claude invocation via [!for-claude] callouts",
   "main": "main.js",
   "scripts": {

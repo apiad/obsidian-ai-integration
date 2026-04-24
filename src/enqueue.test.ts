@@ -201,7 +201,7 @@ describe("reply", () => {
 
     const after = await vault.read(file);
     expect(after).toMatch(
-      /<!-- claude-in-reply-to: parent1 -->\n> \[!for-claude\]/,
+      /> \[!for-claude\]\n> <!-- claude-in-reply-to: parent1 -->/,
     );
     const bubbles = parseBubbles(after);
     expect(bubbles).toHaveLength(2);

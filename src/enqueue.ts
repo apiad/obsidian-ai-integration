@@ -168,10 +168,14 @@ export async function reply(
       ? parentBubble.idMarkerLine
       : parentBubble.lineEnd;
 
+  // Marker lives INSIDE the callout (prefixed with `> `) so Obsidian
+  // hides it as an HTML comment in reading + live-preview modes. It
+  // still survives round-trips through the plugin parser and through
+  // `claude -p`, which sees the raw markdown.
   const snippet = [
     "",
-    `<!-- claude-in-reply-to: ${parentBubble.id} -->`,
     "> [!for-claude]",
+    `> <!-- claude-in-reply-to: ${parentBubble.id} -->`,
     "> ",
     "",
   ];

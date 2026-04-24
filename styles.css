@@ -1,114 +1,113 @@
-/* obsidian-ai-integration v2 */
+/* obsidian-ai-integration v3 — subtle full-width chrome, not chat bubbles.
+ *
+ * Design intent: make for-claude / from-claude callouts stand apart from
+ * surrounding prose without screaming. No max-width, no chat-bubble
+ * asymmetry, no saturated accents. A thin left rail + a very subtle
+ * tint is enough to signal "this is a Claude bubble" while staying
+ * legible on mobile. */
 
-.callout[data-callout="for-claude"] {
-  max-width: 80%;
-  margin: 0.75em 0 0.75em auto;
-  padding: 0.6em 0.9em;
-  border-radius: 12px 12px 2px 12px;
-  background: var(--interactive-accent);
-  color: var(--text-on-accent);
-  border: none;
+.callout[data-callout="for-claude"],
+.callout[data-callout="from-claude"] {
+  margin: 0.6em 0;
+  padding: 0.5em 0.8em;
+  border: 1px solid var(--background-modifier-border);
+  border-left-width: 3px;
+  border-radius: 4px;
+  background: var(--background-secondary);
 }
 
-.callout[data-callout="for-claude"] .callout-title {
-  font-size: 0.8em;
-  opacity: 0.8;
+.callout[data-callout="for-claude"] {
+  border-left-color: var(--interactive-accent);
 }
 
 .callout[data-callout="from-claude"] {
-  max-width: 80%;
-  margin: 0.75em 0;
-  padding: 0.6em 0.9em;
-  border-radius: 12px 12px 12px 2px;
-  background: var(--background-modifier-hover);
-  border: none;
+  border-left-color: var(--text-accent);
 }
 
+.callout[data-callout="for-claude"] .callout-title,
 .callout[data-callout="from-claude"] .callout-title {
-  font-size: 0.8em;
-  opacity: 0.7;
+  font-size: 0.75em;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  padding: 0;
+  margin-bottom: 0.2em;
 }
 
+.callout[data-callout="for-claude"] .callout-icon,
+.callout[data-callout="from-claude"] .callout-icon {
+  display: none;
+}
+
+.callout[data-callout="for-claude"] .callout-content,
+.callout[data-callout="from-claude"] .callout-content {
+  padding: 0;
+  color: var(--text-normal);
+}
+
+/* Tighten spacing inside the content so the block reads as one unit. */
+.callout[data-callout="for-claude"] .callout-content > :first-child,
+.callout[data-callout="from-claude"] .callout-content > :first-child {
+  margin-top: 0;
+}
+.callout[data-callout="for-claude"] .callout-content > :last-child,
+.callout[data-callout="from-claude"] .callout-content > :last-child {
+  margin-bottom: 0;
+}
+
+/* Chrome row — buttons & chips — muted by default. */
 .ai-integration-chrome {
   display: flex;
-  gap: 0.5em;
+  gap: 0.4em;
   align-items: center;
   justify-content: flex-end;
   margin-top: 0.5em;
   padding-top: 0.4em;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-top: 1px dashed var(--background-modifier-border);
 }
 
-.ai-integration-ask {
-  padding: 0.4em 1em;
-  font-weight: 600;
-  font-size: 0.9em;
-  min-height: 2.2em;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.15);
-  color: var(--text-on-accent);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  cursor: pointer;
-}
-
-.ai-integration-ask:hover {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-.ai-integration-chip-queued {
-  padding: 0.15em 0.6em;
-  border-radius: 999px;
-  font-size: 0.8em;
-  background: var(--color-purple);
-  color: white;
-}
-
-.ai-integration-chip-lost {
-  padding: 0.15em 0.6em;
-  border-radius: 999px;
-  font-size: 0.8em;
-  background: var(--color-red);
-  color: white;
-}
-
+.ai-integration-ask,
 .ai-integration-cancel,
-.ai-integration-retry {
-  padding: 0.25em 0.7em;
-  font-size: 0.8em;
-  border-radius: 4px;
-  background: transparent;
-  color: inherit;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  cursor: pointer;
-}
-
-/* From-Claude chrome sits on a neutral background; use muted borders. */
-.callout[data-callout="from-claude"] .ai-integration-chrome {
-  border-top: 1px solid var(--background-modifier-border);
-}
-
+.ai-integration-retry,
 .ai-integration-reply {
-  padding: 0.25em 0.7em;
-  font-size: 0.8em;
-  border-radius: 4px;
+  padding: 0.2em 0.7em;
+  font-size: 0.75em;
+  line-height: 1.4;
+  border-radius: 3px;
   background: transparent;
   color: var(--text-muted);
   border: 1px solid var(--background-modifier-border);
   cursor: pointer;
 }
 
+.ai-integration-ask {
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ai-integration-ask:hover,
+.ai-integration-cancel:hover,
+.ai-integration-retry:hover,
 .ai-integration-reply:hover {
   color: var(--text-normal);
   background: var(--background-modifier-hover);
 }
 
-/* Visual cue that a for-claude bubble is threaded below a previous reply. */
-.callout[data-callout="for-claude"][data-ai-in-reply-to]::before {
-  content: "↩ reply";
-  display: inline-block;
+.ai-integration-chip-queued,
+.ai-integration-chip-lost {
+  padding: 0.1em 0.55em;
+  border-radius: 999px;
   font-size: 0.7em;
-  opacity: 0.7;
-  margin-bottom: 0.3em;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--background-modifier-border);
+}
+
+.ai-integration-chip-lost {
+  color: var(--text-on-accent);
+  background: var(--color-red);
+  opacity: 0.8;
 }
